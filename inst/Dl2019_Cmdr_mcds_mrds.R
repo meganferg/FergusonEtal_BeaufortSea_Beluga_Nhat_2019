@@ -41,7 +41,13 @@
 #                                                      best.Alt
 #    6. Best mcds model based on Cmdr data, VisX.km > 0.0, max.w.Dl=1.140511: Dl.cmdr.hn.alt
 #                   
-#    7. For the mrds model, observer 1 = ASAMM observers, observer 2 = BPC imagery.
+#    7. The dataset used to build the mrds model consists of all imagery and aerial
+#       observer data from all 2018 & 2019 Turbo Commander flights with the belly
+#       port camera (bpc), plus non-bpc Turbo Commander flights during the period 
+#       from 2019-08-05 to 2019-08-27. The dataset excludes imagery sightings that
+#       could not be conclusively categorized as either a match or a mismatch (i.e.,
+#       it excludes the "IR" sightings). For the mrds model, observer 1 = aerial 
+#       observers, observer 2 = BPC imagery. 
 #
 #    8. The best mrds model was no.ir.aba.bpc.hn.mrds.best.Alt.catsizeGT2.f4Beauf. 
 #       However, should proceed with the simpler model 
@@ -451,6 +457,8 @@
 ################
 ################
                 
+  #Input required data
+    no.ir <- readRDS("data//no_ir.rds")
                 
                 
                 
