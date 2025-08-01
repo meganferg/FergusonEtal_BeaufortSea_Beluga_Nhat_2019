@@ -4,17 +4,16 @@
 #     DL2019_dsm_trois_stats.R.
 #
 #  1. Required input files:
-#     a. DL2019_Segs_Deux_Objects2022-03-16.Rdata
-#     b. noirababpchnmrdsbestAltcatsize.rds
-#     c. no_ir.rds
-#     d. inla_mesh2sp_sf_fun.R
-#     e. MCF_MuVarAvg_rr_plot_sdmTMB_tweedie.R
-#     f. Dl_ott_dat.rds
-#     g. aba_bpc_dat.rds
-
-
-
-
+#     a. aba_prj.rds
+#     b. shor_SP_prj.rds
+#     c. tx_10k4.rds
+#     d. noirababpchnmrdsbestAltcatsize.rds
+#     e. no_ir.rds
+#     f. inla_mesh2sp_sf_fun.R
+#     g. MCF_MuVarAvg_rr_plot_sdmTMB_tweedie.R
+#     h. Dl_ott_dat.rds
+#     i. seg_dat.rds
+#     j. dl2019_mrds_dat.rds
 #
 #  2. Uses an equidistant conic map projection for for eastern Beaufort and Amundsen 
 #     68.9 (min coastal Long in actual ABA tx flown) to 72 (max offshore Long in 
@@ -83,10 +82,15 @@
 
   #Define file paths
     dat.dir <- "data"
+    fig.dir <- "figures"
 
   #Input objects 
-    load(file.path(dat.dir, "DL2019_Segs_Deux_Objects2022-03-16.Rdata"))
+    aba.prj <- readRDS("data//aba_prj.rds")
+    shor.SP.prj <- readRDS("data//shor_SP_prj.rds")
+    tx.10k4 <- readRDS("data//tx_10k4.rds")
     no.ir <- readRDS("data//no_ir.rds")
+    seg.dat <- readRDS("data//seg_dat.rds")
+    dl2019.mrds.dat <- readRDS("data//dl2019_mrds_dat.rds")
 
   #Define aba.prj in km
     aba.prj.km <- CRS('+proj=eqdc +lat_1=69.42d
@@ -236,6 +240,15 @@
         #class  
           class(full.model) #"trial" "ddf"
           class(full.model$mr$mr) #"glm" "lm" 
+          
+  #Input objects from Otter detection function code Dl2019_Otter_mcds.R
+    Dl.ott.dat <- readRDS(file.path(dat.dir, "Dl_ott_dat.rds"))
+    Dl.ott.hn.alt <- readRDS(file.path(dat.dir, "Dlotthnalt.rds"))
+    #Ck
+      summary(Dl.ott.hn.alt)
+
+      x <- summary(Dl.ott.hn.alt)
+      x$average.p * x$width #0.5983228
 
   #Fcn to create sf object from inla mesh
     source("inst/inla_mesh2sp_sf_fun.R")       
@@ -388,236 +401,14 @@
           geom_sf(data=NoAm.crop, fill="purple") +
           geom_sf(data=buff.sf, color="red", fill=NA, linewidth=1.0) 
 
-  #Input objects from detection function code
-    Dl.ott.dat <- readRDS(file.path(dat.dir, "Dl_ott_dat.rds"))
-    Dl.ott.hn.alt <- readRDS(file.path(dat.dir, "Dlotthnalt.rds"))
-    #Ck
-      summary(Dl.ott.hn.alt)
-
-      x <- summary(Dl.ott.hn.alt)
-      x$average.p * x$width #0.5983228
-
-  #For mrds models, replace aba.bpc.dat$object with unique numbers that don't 
-  #overlap anything in Dl.ott.dat. 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-    aba.bpc.dat$object <- aba.bpc.dat$object + max(Dl.ott.dat$object)
-
-  #Extract sighting data from cmdr and ott datasets. Need to use ABA transect only,
-  #for east or west region. Regions were defined in DL2019_Regions.R.
-    
-    summary(aba.bpc.dat$Yr[which(is.na(aba.bpc.dat$Region.Label)==FALSE)]) #2019
-
-    #Need to extract common columns from Dl.ott.dat and aba.bpc.dat and place them in the
-    #same order
-    
-      #Change seg.ID2.B4 in aba.bpc.dat to Sample.Label    
-        idx <- which(names(aba.bpc.dat) == "seg.ID2.B4")
-        names(aba.bpc.dat)[idx] <- "Sample.Label"
-    
-      #Extract and order columns    
-        names(Dl.ott.dat) == names(aba.bpc.dat) #Fail to match beginning with 82
-        ncol(Dl.ott.dat)
-        ncol(aba.bpc.dat)
-
-        col.idx <- sapply(1:ncol(aba.bpc.dat), function(i){
-          idx <- which(names(Dl.ott.dat) == names(aba.bpc.dat)[i])
-          if(length(idx) > 0){
-            return(idx)
-          } else {
-            return(NA)
-          }
-        })
-        
-        names(aba.bpc.dat)[which(is.na(col.idx)==TRUE)]
-        
-        Dl.ott.dat.mrds <- Dl.ott.dat
-        Dl.ott.dat.mrds$catsize10 <- NA
-        Dl.ott.dat.mrds$catsizeGT10 <- NA
-        Dl.ott.dat.mrds$flt.yr <- NA
-        Dl.ott.dat.mrds$HOUR24 <- NA
-        Dl.ott.dat.mrds$minute <- NA
-        Dl.ott.dat.mrds$second <- NA
-        Dl.ott.dat.mrds$hour <- NA
-        Dl.ott.dat.mrds$am.pm <- NA
-        Dl.ott.dat.mrds$sop <- NA
-        Dl.ott.dat.mrds$PA.Sight.In.MDB <- NA
-        
-        col.idx <- sapply(1:ncol(aba.bpc.dat), function(i){
-          idx <- which(names(Dl.ott.dat.mrds) == names(aba.bpc.dat)[i])
-          if(length(idx) > 0){
-            return(idx)
-          } else {
-            return(NA)
-          }
-        })
-        
-        Dl.ott.dat.mrds <- Dl.ott.dat.mrds[,col.idx]
-        
-        sum(names(Dl.ott.dat.mrds) != names(aba.bpc.dat)) #should be zero
-      
-    #Extract valid sightings
-        
-      cmdr.idx <- which(aba.bpc.dat$Entry == "s on transect" &
-                                    (aba.bpc.dat$Region.Label == "east" |
-                                       aba.bpc.dat$Region.Label == "west") &
-                          aba.bpc.dat$observer == 1 &
-                          aba.bpc.dat$detected == 1)
-      c.dat <- aba.bpc.dat[cmdr.idx,]
-      c.dat$ddfobj <- 1
-              
-      ott.idx <- which(Dl.ott.dat.mrds$Entry == "s on transect" &
-                                    (Dl.ott.dat.mrds$Region.Label == "east" |
-                                       Dl.ott.dat.mrds$Region.Label == "west"))
-      o.dat <- Dl.ott.dat.mrds[ott.idx,]
-      o.dat$ddfobj <- 2
-
-      dl2019.mrds.dat <- rbind.data.frame(c.dat, o.dat)
-      #Ck
-        length(cmdr.idx) #357 - includes 1 record for every unique sighting (observer 1)
-        length(ott.idx)  #76
-        nrow(dl2019.mrds.dat)   #433  
-        summary(as.factor(dl2019.mrds.dat$ddfobj))
-        
-        nrow(dl2019.mrds.dat) #433
-        length(unique(dl2019.mrds.dat$object)) #433
-
-        unique(dl2019.mrds.dat$Sample.Label) #shouldn't be any NA stuff in these labels
-
-  #Re-name Sample.Label, best.Alt, iBeauf, and f4Beauf in seg.dat
-    names(seg.dat)
-        
-    names(seg.dat)[1] <- "Sample.Label"
-    names(seg.dat)[5] <- "best.Alt"
-    names(seg.dat)[6] <- "iBeauf"
-    names(seg.dat)[7] <- "f4Beauf"
-    summary(seg.dat)
-    summary(as.factor(seg.dat$f4Beauf))
-    
-  #Note that seg.dl.calf, seg.dl.solo, & seg.dl.grp were defined in DL2019_Segs_Deux.R.
-  #However, they were defined prior to left- and right-truncation. Therefore, they
-  #are meaningless now. Need to omit seg.dl.calf, seg.dl.solo, and seg.dl.grp from
-  #seg.dat.
-    names(seg.dat)
-    idx <- which(names(seg.dat) %in% c("seg.dl.calf", "seg.dl.solo", "seg.dl.grp"))
-    seg.dat <- seg.dat[,-idx]
-    names(seg.dat)
-
-  #Add ddfobj to seg.dat. 1 = cmdr; 2 = ott. aba.dat was created by DL2019_Segs_Deux.R.
-    seg.dat$ddfobj <- NA
-    
-    for(i in 1:nrow(seg.dat)){
-      idx.i <- which(aba.dat$seg.ID2.B4 == seg.dat$Sample.Label[i])[1]
-      surv.nam.i <- aba.dat$SurvNam[idx.i]
-      if(substr(surv.nam.i, start=5, stop=5) == "C"){
-        seg.dat$ddfobj[i] <- 1 #cmdr
-      } else { 
-        seg.dat$ddfobj[i] <- 2 #ott
-      }
-    }
-    #Ck
-      summary(as.factor(seg.dat$ddfobj))
-    
-      cmdr.seg.idx <- which(seg.dat$Sample.Label %in% c.dat$Sample.Label)
-      ott.seg.idx <- which(seg.dat$Sample.Label %in% o.dat$Sample.Label)
-      
-      summary(seg.dat$ddfobj[cmdr.seg.idx]) #should all be 1
-      summary(seg.dat$ddfobj[ott.seg.idx])  #should all be 2
-
-  #Compute number of individuals per segment. dl2019.mrds.dat was created above
-  #and it holds valid aba sightings from cmdr and ott.
-    seg.ind <- sapply(1:nrow(seg.dat), function(i){
-                idx <- which(dl2019.mrds.dat$Sample.Label == seg.dat$Sample.Label[i])
-                ind.i <- sum(dl2019.mrds.dat$size[idx])
-                return(ind.i)
-    })
-    seg.dat$seg.ind <- seg.ind
-    #Ck
-      length(seg.ind) #1173
-      nrow(seg.dat) #1173
-      summary(seg.dat$seg.ind)
-      sum(seg.dat$seg.ind) #639
-      sum(dl2019.mrds.dat$size) #639
-      
-  #Omit seg.ID2.B4 SL.148.seg.3, SL.148.seg.4, SL.196.seg.1, from seg.dat 
-  #because they had Dl sightings taken when best.Alt > 2.0
-      
-    #which(seg.dat$Sample.Label == "SL.196.seg.2") #present here
-      
-    nrow(seg.dat) #1173
-    idx <- which(seg.dat$Sample.Label %in% c("SL.148.seg.3", 
-                                           "SL.148.seg.4", 
-                                           "SL.196.seg.1"))
-    seg.dat <- seg.dat[-idx,]
-
-    cmdr.seg.dat <- seg.dat[which(seg.dat$ddfobj == 1),]
-    ott.seg.dat <- seg.dat[which(seg.dat$ddfobj == 2),]
-    #ck
-      nrow(seg.dat) #1170
-      length(idx)
-      nrow(cmdr.seg.dat) + nrow(ott.seg.dat) #should be 1170
-      which(seg.dat$Sample.Label %in% c("SL.148.seg.3", 
-                                           "SL.148.seg.4", 
-                                           "SL.196.seg.1")) #should be integer(0)
-
-  #Check that the Sample.Labels for all sightings are present in seg.dat. Omit
-  #samples that are not present in valid segments. This should omit sightings
-  #on SL.148.seg.3 (best.Alt too high). 
-
-    nrow(dl2019.mrds.dat)
-   
-    idx <- match(dl2019.mrds.dat$Sample.Label, seg.dat$Sample.Label)
-    na.idx <- which(is.na(idx)) 
-    
-    dl2019.mrds.dat$Sample.Label[na.idx] #obsdata Sample.Label not in seg.dat
-    dl2019.mrds.dat <- dl2019.mrds.dat[-na.idx,] #omit sightings from invalid segs
-    #CK
-     length(idx) #433
-     nrow(dl2019.mrds.dat) #432
-     length(na.idx) #1
-     
-  #Rebuild cmdr ddf object using dsm sample labels. 
-    
-    no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm  <- ddf(dsmodel = ~mcds(key = "hn", formula = ~best.Alt),
-                                        mrmodel = ~glm(link = "logit", formula = ~ distance + catsize),
-                                        data = no.ir,
-                                        method = "trial",
-                                        meta.data=list(width=max.w.Dl))
-    #Ck
-      summary(no.ir.aba.bpc.hn.mrds.best.Alt.catsize)
-      summary(no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm)
-      
-      summary(no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm$fitted)
-      summary(predict(no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm, 
-                      integrate=FALSE)$fitted) #same
-      
-      p <- no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm$fitted
-      length(p) #905: only provides predictions for observer == 1 and detected == 1
-      nrow(aba.bpc.dat[(aba.bpc.dat$observer == 1 & aba.bpc.dat$detected == 1),]) #905
-      nrow(aba.bpc.dat) #2030
-      
-      length(unique(p)) #254
-      idx <- which(aba.bpc.dat$observer == 1 & aba.bpc.dat$detected == 1)
-      test <- paste(aba.bpc.dat$best.Alt, aba.bpc.dat$catsizeGT2, sep="")
-      length(unique(test[idx])) #254: one for each value of p (see above)
-
-  #Compute Horvitz-Thompson estimator for each observation and each segment. See 
-  #mrds_explained_by_mcf_rev20250321 for background on the predict() function
-  #for mrds objects. For each ddf, use predict() with new data corresponding to 
-  #the valid sighting locations.
+  #Compute Horvitz-Thompson estimator for each observation and each segment. 
+  #For each ddf, use predict() with new data corresponding to the valid sighting 
+  #locations.
       
     dl2019.mrds.dat$avg.p <- NA  
       
-    ddf1 <- no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm
-    ddf2 <- Dl.ott.hn.alt.dsm
+    ddf1 <- no.ir.aba.bpc.hn.mrds.best.Alt.catsize
+    ddf2 <- Dl.ott.hn.alt
 
     i1 <- which(dl2019.mrds.dat$ddfobj == 1)
     dat1 <- dl2019.mrds.dat[i1,]
@@ -693,8 +484,8 @@
       length(seg.Nht) #1170
       nrow(seg.dat) #1170
       summary(seg.dat$seg.Nht)
-      sum(seg.dat$seg.Nht) #2736.106
-      sum(dl2019.mrds.dat$Nht) #2736.106
+      sum(seg.dat$seg.Nht) #2462.496
+      sum(dl2019.mrds.dat$Nht) #2462.496
 
    #Define offsets as area in km2, using:
    # i. aircraft-specific w
@@ -715,12 +506,8 @@
       w2
       summary(seg.dat$seg.km)
       summary(seg.dat$a)
-      
-   #Plot stuff. At this point, seg.dat.sf, tx.10k4.sf, and aba.bpc.obs1.dat.sf 
-   #extend all the way to Pt. Barrow. I think that I already have matched
-   #observations in aba.bpc.obs1.dat.sf that are located west of the existing
-   #DL2019 study area boundaries to Sample.Labels. If so, I could use these to 
-   #extend the western border of the DSM in case I run into edge effects.
+
+   #Plot stuff. 
       
        dl2019.mrds.sf.LL <- st_as_sf(x=dl2019.mrds.dat,
                                      coords=c("ArcLong", "ArcLat"),
@@ -736,28 +523,13 @@
         #Extract tx that are located within dl2019.buff.sf      
           tx.10k4.in <- st_intersection(dl2019.buff.sf, tx.10k4.sf)           
 
-       aba.bpc.obs1.dat <- aba.bpc.dat[which(aba.bpc.dat$observer == 1 &
-                                             aba.bpc.dat$detected == 1),]
-       aba.bpc.obs1.dat.sf.LL <- st_as_sf(aba.bpc.obs1.dat, 
-                                       coords=c("ArcLong", "ArcLat"),
-                                       crs="EPSG:4326")
-       aba.bpc.obs1.dat.sf <- st_transform(aba.bpc.obs1.dat.sf.LL, aba.prj.km)
-       
-       Dl.ott.dat.mrds.sf.LL <- st_as_sf(Dl.ott.dat.mrds,
-                                         coords=c("ArcLong", "ArcLat"),
-                                         crs="EPSG:4326")
-       Dl.ott.dat.mrds.sf <- st_transform(Dl.ott.dat.mrds.sf.LL, aba.prj.km)
-       
        ggplot() + geom_sf(data=dl2019.buff.sf, fill="cyan") +
           geom_sf(data=NoAm.crop, fill="purple") + 
           geom_sf(data=tx.10k4.sf, linewidth=1, color="white") +
           geom_sf(data=tx.10k4.in, linewidth=1) +
           geom_sf(data=seg.dat.sf, col="red", size=0.25) +
-          geom_sf(data=aba.bpc.obs1.dat.sf, col="magenta", size=0.25) +
-          geom_sf(data=Dl.ott.dat.mrds.sf, col="orange", size=0.25) +
-          geom_sf(data=dl2019.mrds.sf, col="yellow", size=0.25) #+
-          #geom_sf(data=Dl.ott.dat.mrds.sf, col="orange", size=1) 
-      
+          geom_sf(data=dl2019.mrds.sf, col="yellow", size=0.25) 
+
   #Create prediction grid
   #
   #  x: x-coord of cell midpoint
@@ -806,7 +578,7 @@
         hex4pred.df <- st_drop_geometry(hex4pred)[,-1] #Omit initial "NA_" column
         summary(hex4pred.df)
 
-  #Create mesh for spde knots based on the best model from DL2019_dsm_deux.R.
+  #Create mesh for spde knots
           
     #First, need to extract seg.dat that are located within dl2019.buff.sf      
       seg.dat.in <- st_intersection(dl2019.buff.sf, seg.dat.sf)    
@@ -866,19 +638,6 @@
               geom_sf(data=seg.dat.in, col="red", size=0.25) +
               geom_sf(data=dl2019.mrds.sf, col="yellow", size=0.25)
   
-            ggplot() + geom_sf(data=NoAm.coast, fill="darkgray") + 
-              geom_sf(data=dl2019.buff.sf, color="magenta", linewidth=1) +
-              geom_sf(data=mesh70.sf[[2]], fill=NA) +
-              geom_sf(data=mesh70.sf[[4]], fill=NA) +
-              #geom_sf(data=hex4pred, fill=NA) +
-              geom_sf(data=seg.dat.in, col="red", size=0.25) +
-              geom_sf(data=dl2019.mrds.sf, col="yellow", size=0.25) +
-              ggtitle("mesh70")
-            
-            ggsave(filename=file.path(out.dir, "sdmTMB", "mesh70_trois.png"), 
-                   dpi="retina", height=10,
-                   width=15, units="cm")
-
   #Create dataframe for saving model highlights
     # df <- data.frame(Doubles=double(),
     #               Ints=integer(),
@@ -966,11 +725,11 @@ Max.Edg <- max.edg70
     #Evaluate model fit 
 
       TITLE <- paste(typ,BS,Max.Edg,"catsize",sep="_")
-      Fnam <- file.path(out.dir, "sdmTMB", TITLE)   
+      Fnam <- file.path(fig.dir, "sdmTMB", TITLE)   
       
       if(class(M)[1] == "try-error"){
                   
-        sink(file=file.path(out.dir, "sdmTMB", paste0(TITLE,"_TryError.txt")))
+        sink(file=file.path(fig.dir, "sdmTMB", paste0(TITLE,"_TryError.txt")))
           print(M)
         sink()  
         
@@ -984,7 +743,7 @@ Max.Edg <- max.edg70
                                         counts=seg.dat.in, #seg.ind
                                         effort.sf=tx.10k4.in, 
                                         coast=NoAm.coast,
-                                        pth=file.path(out.dir, "sdmTMB"),
+                                        pth=file.path(fig.dir, "sdmTMB"),
                                         title=TITLE,
                                         NSIM=1000)
           
@@ -1018,7 +777,7 @@ Max.Edg <- max.edg70
           
           M.sanity <- sanity(M)
           
-          sink(file=file.path(out.dir, "sdmTMB", paste0(TITLE,".txt")))
+          sink(file=file.path(fig.dir, "sdmTMB", paste0(TITLE,".txt")))
             print(paste0("M.idx=",M.idx))
             print(M.sanity)
             summary(M)
@@ -1053,11 +812,11 @@ Max.Edg <- max.edg70
             M.idx.i <- M.idx + 1 
             
             TITLE <- paste(M.typ[i],BS,Max.Edg,"catsize",sep="_")
-            Fnam <- file.path(out.dir, "sdmTMB", TITLE)
+            Fnam <- file.path(fig.dir, "sdmTMB", TITLE)
             
             if(class(M.list[[i]])[1] == "try-error"){
                         
-              sink(file=file.path(out.dir, "sdmTMB", paste0(TITLE,"_TryError.txt")))
+              sink(file=file.path(fig.dir, "sdmTMB", paste0(TITLE,"_TryError.txt")))
                 print(M)
               sink()  
               
@@ -1072,7 +831,7 @@ Max.Edg <- max.edg70
                                         counts=seg.dat.in, #seg.ind
                                         effort.sf=tx.10k4.in, 
                                         coast=NoAm.coast,
-                                        pth=file.path(out.dir, "sdmTMB"),
+                                        pth=file.path(fig.dir, "sdmTMB"),
                                         title=TITLE,
                                         NSIM=1000)
                 
@@ -1101,7 +860,7 @@ Max.Edg <- max.edg70
                 
                 M.sanity <- sanity(M.list[[i]])
                 
-                sink(file=file.path(out.dir, "sdmTMB", paste0(TITLE,".txt")))
+                sink(file=file.path(fig.dir, "sdmTMB", paste0(TITLE,".txt")))
                   print(paste0("M.idx=",M.idx.i))
                   print(M.sanity)
                   summary(M.list[[i]])
@@ -1124,14 +883,6 @@ Max.Edg <- max.edg70
     
           }
       }
-      
 
-write.csv(M.df, file.path(out.dir, "sdmTMB", "M_df_catsize.csv"))      
+write.csv(M.df, file.path(fig.dir, "sdmTMB", "M_df.csv"))      
                        
-st_write(obj = mesh70.sf[[2]], dsn = file.path(out.dir, "Shapefiles","mesh70edges_catsize.shp"),
-                         delete_layer = TRUE)
-
-st_write(obj = mesh70.sf[[4]], dsn = file.path(out.dir, "Shapefiles","mesh70vertices_catsize.shp"),
-                         delete_layer = TRUE)
- 
-save.image(file=file.path(out.dir, "DL2019_dsm_trois_workspace.Rdata"))          
