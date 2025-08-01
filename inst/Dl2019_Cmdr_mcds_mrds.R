@@ -5,6 +5,11 @@
 #
 #    2. Required input files:
 #       a. cmdr_dat.rds
+#       b. ClinoArcDist.Rdata
+#       c. no_ir.rds
+
+
+
 #
 #    3. Filters for ddf estimation:
       #       a. size >= 1 & is.na(size) == FALSE
@@ -36,20 +41,26 @@
 #                                                      best.Alt
 #    6. Best mcds model based on Cmdr data, VisX.km > 0.0, max.w.Dl=1.140511: Dl.cmdr.hn.alt
 #                   
+#    7. For the mrds model, observer 1 = ASAMM observers, observer 2 = BPC imagery.
+#
+#    8. The best mrds model was no.ir.aba.bpc.hn.mrds.best.Alt.catsizeGT2.f4Beauf. 
+#       However, should proceed with the simpler model 
+#       no.ir.aba.bpc.hn.mrds.best.Alt.catsizeGT2 because it was within 2 AIC units
+#       of the more complicated best model. Model selection involved:
+#       a) using the best mcds model for the ds component
+#       b) evaluating catsize, catsizeGT2, loggs, iBeauf, and f4Beauf along with distance 
+#          as covariates in the mrmodel
+#       c) best model chosen based on AIC.
+
 
   #setwd("C:\\Users\\megan.ferguson\\OneDrive - Biodiversity Research Institute\\Documents\\Belugas\\2019_BeaufortSeaBelugas\\Analysis\\FergusonEtal_BeaufortSea_Beluga_Nhat_2019")
 
-#  library(sp)
-#  library(maptools)
-#  library(rgeos)
-#  library(rgdal)
-#  library(raster)   
   library(mrds)
   library(mgcv)
+  library(lubridate)
+  library(Distance) #needed for fcn gof_ds()
 
   #Input required functions and data
-#  #  load("Functions//xtract_flightlines_SL_byBeaufVis_ReturnList_20181223.Rdata")
-#  #  load("Functions//LTsamplFCNS.Rdata")
     load("data//ClinoArcDist.Rdata")
     cmdr.dat <- readRDS("data//cmdr_dat.rds")
 
@@ -434,7 +445,13 @@
                 
                 plot(Dl.cmdr.hn.alt)
                 
-
+################
+################
+#  MRDS MODEL  #
+################
+################
+                
+                
                 
                 
                 
