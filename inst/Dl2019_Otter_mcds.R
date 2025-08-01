@@ -52,6 +52,13 @@
   
   #Input required functions, model objects, and data
     ott.dat <- readRDS("data//ott_dat.rds")
+    
+    #Edit variable names for later use in DSM script
+      idx <- which(names(ott.dat) == "Sample.Label")
+      names(ott.dat)[idx] <- "Strat.Sample.Label"
+      
+      idx <- which(names(ott.dat) == "seg.ID2.B4")
+      names(ott.dat)[idx] <- "Sample.Label"
 
     #Examine histogram of perpendicular distances of Dl sightings in ott.dat to figure out ltrnc.
 
@@ -497,8 +504,8 @@
                 plot(Dl.ott.hn.alt)
                 
   #Save to .rds file
-    
-    saveRDS(Dl.ott.hn.alt, file=("data//Dlotthnalt.Rdata"))
+    saveRDS(Dl.dx.x95, file="data//Dl_ott_dat.rds")
+    saveRDS(Dl.ott.hn.alt, file=("data//Dlotthnalt.rds"))
                 
                 
                 
