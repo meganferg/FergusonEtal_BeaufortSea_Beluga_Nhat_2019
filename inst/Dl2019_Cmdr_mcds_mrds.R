@@ -5,11 +5,7 @@
 #
 #    2. Required input files:
 #       a. cmdr_dat.rds
-#       b. ClinoArcDist.Rdata
-#       c. no_ir.rds
-
-
-
+#       b. no_ir.rds
 #
 #    3. Filters for ddf estimation:
       #       a. size >= 1 & is.na(size) == FALSE
@@ -75,8 +71,7 @@
   library(lubridate)
   library(Distance) #needed for fcn gof_ds()
 
-  #Input required functions and data
-    load("data//ClinoArcDist.Rdata")
+  #Input required data
     cmdr.dat <- readRDS("data//cmdr_dat.rds")
 
     #Examine histogram of perpendicular distances of beluga sightings from
