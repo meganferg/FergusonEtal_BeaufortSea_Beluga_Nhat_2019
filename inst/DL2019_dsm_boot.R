@@ -54,9 +54,6 @@
               return(p.val)
     }
     
-  #Input stuff from tweedie_spde.bar_70.Rdata
-    load(file.path(out.dir, "sdmTMB", "tweedie_spde.bar_70_catsize.Rdata"))
-
   #Input stuff 
   # i. no.ir.aba.bpc.hn.mrds.best.Alt.catsize: mrds model for Cmdr
   # ii. Dl.ott.hn.alt: mcds model for Ott
@@ -66,12 +63,16 @@
   #     and seg.dat$seg.km[i2]*w2 for ddf1 and 2, respectively. These $a values
   #     remain constant.
   # v. dl2019.mrds.dat: Valid beluga observations
+  # vi. sdmTMB model stuff in tweedie_spde.bar_70.Rdata
+  # vii. bspde.70
     
-    no.ir.aba.bpc.hn.mrds.best.Alt.catsize <- readRDS(file="data\\noirababpchnmrdsbestAltcatsize.rds")
-    Dl.ott.hn.alt <- readRDS(file="data\\Dlotthnalt.rds")
-    hex4pred.df <- readRDS(file="data\\hex4preddf.rds")
-    seg.dat.in <- readRDS(file="data\\segdatin.rds")
-    dl2019.mrds.dat <- readRDS(file="data\\dl2019_mrds_dat.rds")
+    no.ir.aba.bpc.hn.mrds.best.Alt.catsize <- readRDS(file.path(proj.dir,"data","noirababpchnmrdsbestAltcatsize.rds"))
+    Dl.ott.hn.alt <- readRDS(file.path(proj.dir,"data","Dlotthnalt.rds"))
+    hex4pred.df <- readRDS(file.path(proj.dir,"data","hex4preddf.rds"))
+    seg.dat.in <- readRDS(file.path(proj.dir,"data","segdatin.rds"))
+    dl2019.mrds.dat <- readRDS(file.path(proj.dir,"data","dl2019_mrds_dat_Nhat.rds"))
+    load(file.path(out.dir, "sdmTMB", "tweedie_spde.bar_70_catsize.Rdata"))
+    bspde.70 <- readRDS(file.path(proj.dir, "data", "bspde70.rds"))
     
   #Identify which observations in dl2019.mrds.dat belong to ddf1 vs. ddf2
     i1 <- which(dl2019.mrds.dat$ddfobj == 1)
@@ -90,8 +91,8 @@
   #Detection Functions#
   #####################    
     
-    ddf1 <- no.ir.aba.bpc.hn.mrds.best.Alt.catsize.dsm
-    ddf2 <- Dl.ott.hn.alt.dsm
+    ddf1 <- no.ir.aba.bpc.hn.mrds.best.Alt.catsize
+    ddf2 <- Dl.ott.hn.alt
       
     #Extract the MLEs and covariance matrix from fitted detection function model
       
@@ -198,9 +199,7 @@
 
           #Generate bootstrap predictions for the ddf1 and ddf2 ds models.
           #As a workaround, I apply the p0.gs... values computed above 
-          #to the bootstrapped ds model estimates for both ddf1 and ddf2. For
-          #more background on how the model pieces fit together, see 
-          #scratch in DL2019_dsm_deux.R
+          #to the bootstrapped ds model estimates for both ddf1 and ddf2.
             
             bs.ddf1 <- ddf1
             bs.ddf1$par <- ddf1.beta.i
@@ -303,7 +302,7 @@
                 print(summary(bs.Nht[,ddf.boot]))
                 print(sum(bs.Nht[,ddf.boot])) #bootstrapped obs, pooled into segs
                 print(sum(bs.obs1$Nht) + sum(bs.obs2$Nht)) #bootstrapped obs
-                print(sum(dl2019.mrds.dat$Nht)) #original obs 2736.106
+                print(sum(dl2019.mrds.dat$Nht)) #original obs 2462.496
               }
               
         } #End ddf bootstrap            
@@ -481,8 +480,8 @@
       } #end sdm.boot loop
           
   #Output stuff
-    write.csv(M.df, file=file.path(out.dir, "Boot", "DL2019_dsm_boot_M_df_trois.csv"))
-    save(bs.Nht, M.df, file=file.path(out.dir, "Boot", "DL2019_dsm_boot_M_df_trois.Rdata"))
+    write.csv(M.df, file=file.path(out.dir, "boot", "DL2019_dsm_boot_M_df.csv"))
+    save(bs.Nht, M.df, file=file.path(out.dir, "boot", "DL2019_dsm_boot_M_df.Rdata"))
       
       
  
