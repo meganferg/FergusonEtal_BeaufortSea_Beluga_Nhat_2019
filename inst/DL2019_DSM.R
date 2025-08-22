@@ -571,6 +571,7 @@
       #Convert to df for prediction
         hex4pred.df <- st_drop_geometry(hex4pred)[,-1] #Omit initial "NA_" column
         summary(hex4pred.df)
+        saveRDS(hex4pred.df, file="data\\hex4preddf.rds")
 
   #Create mesh for spde knots
           
@@ -894,5 +895,6 @@ Max.Edg <- max.edg70
           }
       }
 
-write.csv(M.df, file.path(fig.dir, "sdmTMB", "M_df.csv"))      
+write.csv(M.df, file.path(fig.dir, "sdmTMB", "M_df.csv"))     
+saveRDS(seg.dat.in, file="data\\segdatin.rds")
                        
