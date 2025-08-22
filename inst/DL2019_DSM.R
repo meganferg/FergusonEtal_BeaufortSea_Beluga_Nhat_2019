@@ -897,4 +897,5 @@ Max.Edg <- max.edg70
 
 write.csv(M.df, file.path(fig.dir, "sdmTMB", "M_df.csv"))     
 saveRDS(seg.dat.in, file="data\\segdatin.rds")
+saveRDS(dl2019.mrds.dat, file="data\\dl2019_mrds_dat_Nhat.rds")
                        
