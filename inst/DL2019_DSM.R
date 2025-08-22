@@ -620,7 +620,7 @@
       mesh70.sdmTMB <- make_mesh(loc.df, c("x","y"), mesh=mesh70) #for sdmTMB 
       mesh70.sf <- inla.mesh2sp.sf.fun(mesh70, crs=aba.prj.km) #for ggplot
       
-      #Crop North America to mesh60 for plotting and to later create spde.bar
+      #Crop North America to mesh70 for plotting and to later create spde.bar
         st_crs(mesh70.sf[[2]]) == st_crs(NoAm.prj)
       
         NoAm.coast <- sf::st_crop(NoAm.prj, st_bbox(mesh70.sf[[2]]))
