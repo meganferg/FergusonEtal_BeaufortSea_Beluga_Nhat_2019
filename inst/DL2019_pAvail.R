@@ -1,4 +1,4 @@
-#Script DL2019_AvailBias.r...Megan C. Ferguson...12 July 2025
+#Script DL2019_pAvail.R...Megan C. Ferguson...21 August 2025
 
 # NOTES
 #
@@ -36,198 +36,91 @@
 #      ranged from 9 to 18 min, which is also similar to the
 #      durations we observed (Table 5).
 #
-# 2. Availability bias estimator is from Laake et al. 1997. Journal of 
-#    Wildlife Management 61(1):63-75.
+# 2. Availability bias estimator is from:
+#    McLaren, I., 1961. Methods of determining the numbers and availability of 
+#    ring seals in the eastern Canadian Arctic. Arctic 14, 162–175.
 #
-# 3. See also p_avail_fun.r for more examples using p.avail.fun().
+#    Frost, K., Lowry, L., 1995. Radio tag based correction factors for use in 
+#    beluga whale population estimates. Working paper for Alaska Beluga Whale 
+#    Committee Scientific Workshop, Anchorage, AK, 5-7 April 1995.
 #
-# 4. Estimate of time in view (tiv) for belugas for ASAMM surveys
+# 3. Estimate of time in view (tiv) for belugas for ASAMM surveys
 #    on the Cmdr and Otter were computed as
 #          tiv = div/speed
 #    where div = distance in view. Because the estimated field of 
-#    view for both the Cmdr and Otter (see FB_FOV_Analysis_PartTrois.r 
-#    and Inuvik_FOV_Analysis.r, respectively) is greater than the 
-#    right-truncation distance for this analysis (Cmdr max.w.Dl=1.140511, 
-#    from Dl2019_Cmdr_ddf.r; Otter max.w.Dl=1.095209, from Dl2019_Otter_ddf.r),
-#    use the max.w.Dl to inform div. --> div = 1.1 km 
-#
-# 5. DFO estimates of avg s and avg d are from Table 3 in:
-#
-#    Marcoux, Marianne, Luke Storrie, Shannon MacPhee, and Lisa Loseto. 2025. 
-#    “Availability Bias Adjustment for Calculating Aerial Survey Abundance Estimates 
-#    for Belugas (Delphinapterus Leucas) in the Eastern Beaufort Sea.” 2025/002. 
-#    Canadian Science Advisory Secretariat Research Document. Winnipeg, Manitoba, 
-#    Canada: Fisheries and Oceans Canada.
-#
-#    Marcoux et al. recommended using the 5-m values for the offshore area.
+#    view for both the Cmdr and Otter is greater than the 
+#    right-truncation distance for this analysis (Cmdr max.w.Dl=1.140511; Otter 
+#    max.w.Dl=1.095209), use the max.w.Dl to inform div. --> div = 1.1 km 
 
-
-  #Define p.avail.fun. (See p_avail_fun.r)
+  #Define p.avail.fun from McLaren (1961)
   # s: avg surface interval
   # d: avg dive interval
   # tiv: time in view
-    p.avail.fun <- function(s, d, tiv){
-      p.a <- s/(s+d) + d*( 1 - exp(-(tiv/d)) )/(s + d)
+    Mc.p.avail <- function(s, d, tiv){
+      p.a <- (s + tiv)/(s + d)
       return(p.a)
     }  
     
+  #Define Frost and Lowry's (1995) availability probability for individual beluga
+  # s.short: total duration of surfacings associated with short dives
+  # s.long: total duration of surfacings associated with long dives
+  # d.short: total duration of short dives
+  # d.long: total duration of long dives
+  # pA: availability probability from McLaren's estimator
+    FL.p.avail <- function(s.short, s.long, d.short, d.long, pA){
+      p.a <- ( (s.short + d.short) + (s.long + d.long)*pA )/(s.short + s.long + d.short + d.long)
+      return(p.a)
+    }
+    
   #Compute tiv from div and speed
-    div <- 1100 #meters
+    cmdr.div <- 1140 #meters
+    ott.div <- 1100 #meters
     
     speed115.kmh <- 212.98 #115 kts = 212.98 km/hr
     speed115.ms <- speed115.kmh*(1000/(60*60)) #115 kts = 59.1611 m/s
     
-    tiv <- div/speed115.ms #seconds
+    cmdr.tiv <- cmdr.div/speed115.ms #seconds
+    ott.tiv <- ott.div/speed115.ms #seconds
     
-  #Estimate ballpark surface interval based on Citta et al. (2013)
-    avg.d <- c(3.4, 5.1) #average dive duration in mins
-    num.d <- c(5.1, 9.8) #average number of dives per hour
+  #Define s.avg, d.avg, s.short, s.long, d.short, and d.long for belugas BB-585,  
+  #CI-657, and CI-457 in Table 1 from Frost and Lowry(1995). All vectors present 
+  #data for individual belugas in the following order: BB-585, CI-657, CI-457. 
+  #These are data associated with the breakpoint of 10.3 sec.
+    s.avg <- c(4, 2.66, 1.65) #sec
+    d.avg <- c(37.01, 42.51, 40.08) #sec
+    s.short <- c(181, 1553, 156) #sec 
+    d.short <- c(195, 3783, 678) #sec
+    s.long <- c(560, 1879, 262) #sec
+    d.long <- c(5182, 30057, 6372) #sec
     
-    #Function to compute average surface interval (minutes) from average dive interval (d, in minutes)
-    #and average number of dives per hour (num)
-      avg.s.fun <- function(d, num){
-        s <- (60/num) - d
-        return(s)
-      }
-      
-      #Set up d and num to get all combinations
-        d.vec <- c(avg.d, avg.d[2:1])
-        n.vec <- rep(num.d, 2)
-        
-      #Compute avg.s for all combinations of d and num
-        avg.s <- avg.s.fun(d.vec, n.vec)
-        
-      #Convert avg dive and surface intervals to secs
-        avg.d.secs <- d.vec*60
-        avg.s.secs <- avg.s*60
-        #CK
-          d.vec
-          n.vec
-          avg.s #ranges from 1.0 to 8.4 mins
-          
-          avg.d.secs
-          avg.s.secs
-      
-    #Compute probability of availability (pA) for different surface and dive intervals
-      
-      pA <- p.avail.fun(avg.s.secs, avg.d.secs, tiv)
-      pA.df <- cbind.data.frame(avg.s.secs, 
-                                "avg.s.mins"=avg.s.secs/60,
-                                avg.d.secs, 
-                                "avg.d.mins"=avg.d.secs/60,
-                                "n.dive.per.hr"=n.vec,
-                                pA)
-      #CK
-        pA
-        pA.df
-        p.avail.fun(avg.s.secs[1], avg.d.secs[1], tiv) #should equal pA[1]
-        p.avail.fun(avg.s.secs[2], avg.d.secs[2], tiv) #should equal pA[2]
-        p.avail.fun(avg.s.secs[3], avg.d.secs[3], tiv) #should equal pA[3]
-        p.avail.fun(avg.s.secs[4], avg.d.secs[4], tiv) #should equal pA[4]  
-        
-    #Output pA and pA.df
-#      save(pA, pA.df, file="Output//DL2019_AvailBias.Rdata")
-#      write.csv(pA.df, file="Output//DL2019_AvailBias.csv", row.names=FALSE)
-      
-####
-####
-####
-
-  #Compute pA using DFO August data from Marcoux et al. (2025) Table 3.
-  #Marcoux et al. recommended using the 5-m values for the offshore area.
+  #Calc McLaren's p.avail for each beluga using cmdr.tiv, ott.tiv, s.avg,
+  #and d.avg
+    Mc.pa.cmdr <- Mc.p.avail(s=s.avg,
+                             d=d.avg,
+                             tiv=cmdr.tiv)
     
-    dfo.jul.z <- c(1,2,5) #meters
-    dfo.jul.s.min <- c(4.01, 4.59, 5.38) #avg. suface time (min)
-    dfo.jul.d.min <- c(5.47, 5.63, 6.14) #avg. dive time (min)
-    
-    dfo.jul.s.sec <- dfo.jul.s.min*60
-    dfo.jul.d.sec <- dfo.jul.d.min*60
-    
-    test.tiv <- 13.87 #DFO's estimate for their surveys (pg. 4)
-    
-    tiv.cmdr.Dl <- 1140/speed115.ms #seconds. width searched from DL2019_DetectionFcns_S4.pdf
-    tiv.ott.Dl <- 1100/speed115.ms  #seconds. width searched from DL2019_DetectionFcns_S4.pdf
+    Mc.pa.ott <- Mc.p.avail(s=s.avg,
+                             d=d.avg,
+                             tiv=ott.tiv)
     #CK
-      tiv.cmdr.Dl
-      tiv.ott.Dl
-    
-    pA.dfo.jul.cmdr <- p.avail.fun(dfo.jul.s.sec, dfo.jul.d.sec, tiv.cmdr.Dl)
-    pA.dfo.jul.cmdr.df <- cbind.data.frame(dfo.jul.s.sec, 
-                                dfo.jul.s.min,
-                                dfo.jul.d.sec, 
-                                dfo.jul.d.min,
-                                "tiv.cmdr.sec"=rep(tiv.cmdr.Dl,3),
-                                pA.dfo.jul.cmdr)
-    
-    pA.dfo.jul.ott <- p.avail.fun(dfo.jul.s.sec, dfo.jul.d.sec, tiv.ott.Dl)
-    pA.dfo.jul.ott.df <- cbind.data.frame(dfo.jul.s.sec, 
-                                dfo.jul.s.min,
-                                dfo.jul.d.sec, 
-                                dfo.jul.d.min,
-                                "tiv.ott.sec"=rep(tiv.ott.Dl,3),
-                                pA.dfo.jul.ott)
-    
+      Mc.pa.cmdr
+      Mc.pa.ott
+      
+  #Calc Frost and Lowry's p.avail for each beluga
+    FL.pa.cmdr <- FL.p.avail(s.short, s.long, d.short, d.long, Mc.pa.cmdr)
+    FL.pa.ott <- FL.p.avail(s.short, s.long, d.short, d.long, Mc.pa.ott)
     #CK
-      pA.dfo.jul.cmdr
-      1/pA.dfo.jul.cmdr
-      pA.dfo.jul.cmdr.df
+      FL.pa.cmdr
+      FL.pa.ott
       
-      pA.dfo.jul.ott
-      1/pA.dfo.jul.ott
-      pA.dfo.jul.ott.df
-      
-      p.avail.fun(dfo.jul.s.sec, dfo.jul.d.sec, test.tiv)
-      
-  #Compute pA using DFO August data from Marcoux et al. (2025) Table 3.
-  #Marcoux et al. recommended using the 5-m values for the offshore area.
-    
-    dfo.aug.z <- c(1,2,5) #meters
-    dfo.aug.s.min <- c(4.52, 5.40, 6.37) #avg. suface time (min)
-    dfo.aug.d.min <- c(7.64, 7.88, 8.40) #avg. dive time (min)
-    
-    dfo.aug.s.sec <- dfo.aug.s.min*60
-    dfo.aug.d.sec <- dfo.aug.d.min*60
-    
-    tiv.cmdr.Dl <- 1140/speed115.ms #seconds. width searched from DL2019_DetectionFcns_S4.pdf
-    tiv.ott.Dl <- 1100/speed115.ms  #seconds. width searched from DL2019_DetectionFcns_S4.pdf
+  #Calc Frost and Lowry's average p.avail
+    FL.pa.cmdr.avg <- mean(FL.pa.cmdr)
+    FL.pa.ott.avg <- mean(FL.pa.ott)
     #CK
-      tiv.cmdr.Dl
-      tiv.ott.Dl
-    
-    pA.dfo.aug.cmdr <- p.avail.fun(dfo.aug.s.sec, dfo.aug.d.sec, tiv.cmdr.Dl)
-    pA.dfo.aug.cmdr.df <- cbind.data.frame(dfo.aug.s.sec, 
-                                dfo.aug.s.min,
-                                dfo.aug.d.sec, 
-                                dfo.aug.d.min,
-                                "tiv.cmdr.sec"=rep(tiv.cmdr.Dl,3),
-                                pA.dfo.aug.cmdr)
-    
-    pA.dfo.aug.ott <- p.avail.fun(dfo.aug.s.sec, dfo.aug.d.sec, tiv.ott.Dl)
-    pA.dfo.aug.ott.df <- cbind.data.frame(dfo.aug.s.sec, 
-                                dfo.aug.s.min,
-                                dfo.aug.d.sec, 
-                                dfo.aug.d.min,
-                                "tiv.ott.sec"=rep(tiv.ott.Dl,3),
-                                pA.dfo.aug.ott)
-    
-    #CK
-      pA.dfo.aug.cmdr
-      1/pA.dfo.aug.cmdr
-      pA.dfo.aug.cmdr.df
+      FL.pa.cmdr.avg #0.570
+      FL.pa.ott.avg  #0.556
       
-      pA.dfo.aug.ott
-      1/pA.dfo.aug.ott
-      pA.dfo.aug.ott.df
-      
-      p.avail.fun(dfo.aug.s.sec, dfo.aug.d.sec, test.tiv)
+      1/FL.pa.cmdr.avg #1.754
+      1/FL.pa.ott.avg  #1.799
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-
