@@ -19,6 +19,22 @@
 #       log variable and the CV will be very similar."
 #
 #  4. Availability bias correction factors were computed in DL2019_pAvail.R.
+#
+#  5. Statistical computations for total variance were based on 
+#    NSDL_dsm_tmb_mgcv_smry_create_No_osc.R. 
+#
+      #Use law of total variance to compute total variance. In the case of DL2019,
+      #THIS VAR DOES INCLUDE UNCERTAINTY FROM p0.1.
+      #
+      #The Law of Total Variance says:
+      #
+      # Var(Nhat) = E(Var(Nhat|p)) + Var(E(Nhat|p))
+      #
+      #where E(Var(Nhat|p)) = tmb.sd^2 and Var(E(Nhat|p)) is the 
+      #variance in the bootstrap estimates of Nhat
+      #
+      #  VAR <- tmb.sd^2 + sd^2
+      #  CV <- sqrt(VAR)/tmb.Nhat
 
   library(sdmTMB)
   library(sdmTMBextra)
@@ -27,6 +43,7 @@
   library(mrds)
   library(tidyverse)
   library(sf)
+  library(ggbreak)
 
   #Set number of bootstrap iterations
     nboot <- 100
@@ -479,9 +496,155 @@
           rm(bs.M)
       } #end sdm.boot loop
           
+    #Identify the number of valid ddf iterations
+      
+        sum.bs.Nht <- apply(bs.Nht, 2, sum)
+        good.bs.Nht <- bs.Nht[,which(is.na(sum.bs.Nht) == FALSE)]  
+        n.sdm.boot <- ncol(good.bs.Nht)
+        #CK
+          dim(bs.Nht) #823 x nboot; nrow = num hex cells; ncol = num ddf iterations.
+          length(sum.bs.Nht) #should equal num ddf iterations
+          summary(sum.bs.Nht) #may have NA
+          
+          summary(apply(good.bs.Nht,2,sum)) #should have no NA
+          n.sdm.boot #will be < nboot if sum.bs.Nhat had NAs
+      
+    #Examine M.df
+      dim(M.df)   #nrow = num bs.Nht iterations without NA; may have Inf
+      summary(M.df)
+      
+      M.df$bad.sdmTMB <- 0
+      M.df$bad.cAIC <- 0
+      M.df$bad.bc <- 0
+      M.df$bad.sanity <- 0
+      
+      #Identify sdmTMB BS iterations that generated "try-error" from function
+      #sdmTMB. 
+        M.df$bad.sdmTMB[which(M.df$n.re == 0)] <- 1
+
+      #Identify sdmTMB BS iterations that generated "try-error" from function 
+      #cAIC
+        M.df$bad.cAIC[which(is.na(M.df$edf))] <- 1
+
+      #Identify sdmTMB BS iterations that generated "try-error" from function
+      #get_index
+        M.df$bad.bc[which(is.na(M.df$Nhat.bc.lo))] <- 1
+
+      #Identify sdmTMB BS iterations that generated flags during sanity check
+        M.df$bad.sanity[which(M.df$n.flags > 0)] <- 1
+        
+      #Create a dataframe of "good" iterations
+        M.df$test.idx <- M.df$bad.sdmTMB + M.df$bad.cAIC + M.df$bad.bc + M.df$bad.sanity
+        M.df.good <- M.df[which(M.df$test.idx == 0),]
+        #CK
+          summary(M.df.good) 
+          nrow(M.df.good)    
+          
+          summary(M.df$test.idx)
+          test.tbl <- table(M.df$test.idx)
+          test.tbl
+          test.df <- data.frame(n.failed.tests=dimnames(test.tbl)[[1]],
+                                n.iterations=as.vector(test.tbl))
+          ggplot(test.df, aes(x=n.failed.tests, y=n.iterations)) + 
+            geom_bar(stat = "identity", fill="darkturquoise", color="darkturquoise")
+          ggsave(filename=file.path(out.dir, "Boot", "DL2019_dsm_boot_failed_test_barplot.png"),
+                 dpi = "retina")
+          
+          bad.df <- M.df[,c(12:16)]
+          apply(bad.df, 2, sum)
+          
+          test.tbl
+          
+          bad1 <- bad.df[which(bad.df$test.idx ==1),]
+          apply(bad1, 2, sum)
+
+          bad2 <- bad.df[which(bad.df$test.idx ==2),]
+          apply(bad2, 2, sum) 
+          
+          bad3 <- bad.df[which(bad.df$test.idx ==3),]
+          apply(bad3, 2, sum) 
+          
+      #Create histogram of resulting Nhat estimates
+        sort(M.df.good$Nhat)[nrow(M.df.good):1]  
+        sort(M.df.good$Nhat.bc)[nrow(M.df.good):1]
+          
+        d1 <- ggplot(M.df.good) +
+          geom_density(fill="navy", color="navy", aes(Nhat.bc))
+        d1
+        ggsave(plot=d1, filename=file.path(out.dir, "Boot", "DL2019_dsm_boot_M_df_good_dens.png"),
+               dpi = "retina")
+        
+        h1 <- ggplot(M.df.good) +
+          geom_histogram(fill="navy", color="navy", aes(Nhat.bc), bins=100)
+        h1
+        ggsave(plot=h1, filename=file.path(out.dir, "Boot", "DL2019_dsm_boot_M_df_good_hist.png"),
+               dpi = "retina")
+        
+      #Use law of total variance to compute total variance. The Law of Total Variance says:
+      #
+      # Var(Nhat) = E(Var(Nhat|p)) + Var(E(Nhat|p))
+      #
+      #where E(Var(Nhat|p)) = tmb.sd^2 and Var(E(Nhat|p)) is the 
+      #variance in the bootstrap estimates of Nhat. 
+      #
+      
+        #First, compute tmb.se based on output from sdmTMB's get_index function that
+        #is saved to Nhat2.vec: This response from Sean Anderson was copied from
+        #    https://github.com/pbs-assess/sdmTMB/discussions/175#discussioncomment-4865196
+        #      "sdmTMB uses TMB's generalized delta method (see ?TMB::sdreport) on the 
+        #       area-weighted sum of abundance/biomass to calculate the SE. The upper and 
+        #       lower 95% CIs are then +/- 1.96 the SE from log abundance or biomass 
+        #       followed by exp(). Where 1.96 is from qnorm(1 - (1 - 0.95)/2).
+        #       Those are available in the output of get_index() in the se column. 
+        #       Those are on log abundance. Assuming a lognormal variable, which we are, 
+        #       you can get a CV as: sqrt(exp(se^2) - 1). For small values, the SE of the 
+        #       log variable and the CV will be very similar."   
+          
+          tmb.cv <- sqrt(exp(Nhat2.vec$se^2) - 1)
+          tmb.se <- tmb.cv*Nhat2.vec$est
+          #CK
+            Nhat2.vec$se
+            tmb.cv
+            tmb.se
+      
+          tot.var.good <- tmb.se^2 + var(M.df.good$Nhat.bc)
+          tot.se.good <- sqrt(tot.var.good)
+          tot.cv.good <- sqrt(tot.var.good)/Nhat2.vec$est
+          #CK
+            tot.var.good
+
+            tot.se.good 
+
+            tot.cv.good
+
   #Output stuff
     write.csv(M.df, file=file.path(out.dir, "boot", "DL2019_dsm_boot_M_df.csv"))
     save(bs.Nht, M.df, file=file.path(out.dir, "boot", "DL2019_dsm_boot_M_df.Rdata"))
+    saveRDS(M.df.good, file=file.path(out.dir, "boot", "DL2019_dsm_boot_M_df_good.rds"))
+    save.image(file=file.path(out.dir, "boot", "DL2019_dsm_boot_stats.Rdata"))
+        
+        sink(file=file.path(out.dir, "boot", "DL2019_dsm_boot_M_df_good.txt"))
+          print(summary(M.df.good))
+          print(paste0("num hex cells:", dim(bs.Nht)[1]))
+          print(paste0("num ddf iterations:", dim(bs.Nht)[2]))
+          print(paste0("num valid ddf iterations; may have Nhat=Inf:", nrow(M.df))) 
+          print(paste0("num sdmTMB BS iterations that generated try-error from fcn sdmTMB:", sum(M.df$bad.sdmTMB))) 
+          print(paste0("num sdmTMB BS iterations that generated try-error from function cAIC:", sum(M.df$bad.cAIC)))
+          print(paste0("num sdmTMB BS iterations that generated try-error from fcn get_index:", sum(M.df$bad.bc)))   
+          print(paste0("num sdmTMB BS iterations that generated flags during sanity check:", sum(M.df$bad.sanity))) 
+          print(paste0("num iterations without p0=0, run-time errors, or flags:", nrow(M.df.good))) 
+          print(paste0("tmb.se based on output from sdmTMB's get_index function (bias-corrected):", tmb.se))
+          print(paste0("tmb.cv based on output from sdmTMB's get_index function (bias-corrected):", tmb.cv))
+          print(paste0("standard deviation of M.df.good$Nhat.bc (with outliers):", sd(M.df.good$Nhat.bc)))
+          print(paste0("variance of M.df.good$Nhat.bc (with outliers):", var(M.df.good$Nhat.bc)))
+          print(paste0("CV of M.df.good$Nhat.bc (with outliers):", sd(M.df.good$Nhat.bc)/mean(M.df.good$Nhat.bc)))
+          print(paste0("TOTAL variance of M.df.good$Nhat.bc:", tot.var.good))
+          print(paste0("TOTAL SE of M.df.good$Nhat.bc:", tot.se.good))
+          print(paste0("TOTAL CV of M.df.good$Nhat.bc:", tot.cv.good))
+          print(paste0("Number of bootstrap iterations with failed tests:", paste(names(test.tbl), test.tbl, sep="=")))
+          print(paste0("Breakdown of bootstrap iterations with only 1 failed test:", paste(names(bad1), apply(bad1, 2, sum), sep="=")))
+        sink()
+          
       
       
  
