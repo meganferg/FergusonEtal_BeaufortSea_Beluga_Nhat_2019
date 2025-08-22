@@ -1,4 +1,4 @@
-#Script DL2019_DSM.R...Megan C. Ferguson...1 August 2025
+#Script DL2019_DSM.R...Megan C. Ferguson...21 August 2025
 #
 #  0. This script was based on MCF scripts DL2019_dsm_trois.R and 
 #     DL2019_dsm_trois_stats.R.
@@ -40,15 +40,7 @@
 #     mr model to estimate transect detection probability included observation
 #     level covariate catsize
 #
-#  4. Availability bias correction factors were computed in 
-
-
-
-
-
-
-
-#
+#  4. Availability bias correction factors were computed in DL2019_pAvail.R.
 #     For the DL2019 analysis, I used p.avail = 0.56 (CF=1.8). All aircraft
 #     surveyed at the same target speed of 115 kts = 212.98 km/hr = 59.16111 m/s.
 #     Their aircraft-specific estimates of p.avail are shown below; note that they
@@ -654,7 +646,9 @@
                                  n.flags = integer(),
                                  n.no0.segs = integer(),
                                  n.obs = integer(),
-                                 Nhat = double(),
+                                 n.ind = integer(),
+                                 p.avail = double(),
+                                 Nhat.plugin = double(),
                                  Nhat.bc = double(),
                                stringsAsFactors=FALSE)
         
@@ -668,7 +662,9 @@
                                            n.flags=-1,
                                            n.no0.segs=0,
                                            n.obs=0,
-                                           Nhat=-99.9,
+                                           n.ind=0,
+                                           p.avail,
+                                           Nhat.plugin=-99.9,
                                            Nhat.bc=-99.9)
 
   #Build dsms
@@ -791,8 +787,10 @@ Max.Edg <- max.edg70
                                                cAIC=M.cAIC,
                                                n.flags=length(which(as.vector(unlist(M.sanity)) == "FALSE")),
                                                n.no0.segs=length(which(seg.dat.in$seg.ind > 0)),
-                                               n.obs=sum(seg.dat.in$seg.ind),
-                                               Nhat=as.numeric(Nhat[1]),
+                                               n.obs=nrow(dl2019.mrds.sf),
+                                               n.ind=sum(seg.dat.in$seg.ind),
+                                               p.avail,
+                                               Nhat.plugin=as.numeric(Nhat[1]),
                                                Nhat.bc=as.numeric(Nhat[2]))
   
         #Evaluate other observation likelihoods
@@ -874,8 +872,10 @@ Max.Edg <- max.edg70
                                                      cAIC=M.cAIC,
                                                      n.flags=length(which(as.vector(unlist(M.sanity)) == "FALSE")),
                                                      n.no0.segs=length(which(seg.dat.in$seg.ind > 0)),
-                                                     n.obs=sum(seg.dat.in$seg.ind),
-                                                     Nhat=as.numeric(Nhat[1]),
+                                                     n.obs=nrow(dl2019.mrds.sf),
+                                                     n.ind=sum(seg.dat.in$seg.ind),
+                                                     p.avail,
+                                                     Nhat.plugin=as.numeric(Nhat[1]),
                                                      Nhat.bc=as.numeric(Nhat[2]))
                 
                 M.idx <- M.idx.i
