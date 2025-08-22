@@ -1,4 +1,4 @@
-#Script DL2019_DSM.R...Megan C. Ferguson...21 August 2025
+#Script DL2019_DSM.R...Megan C. Ferguson...22 August 2025
 #
 #  0. This script was based on MCF scripts DL2019_dsm_trois.R and 
 #     DL2019_dsm_trois_stats.R.
@@ -705,6 +705,7 @@ Max.Edg <- max.edg70
                               range_fraction = 0.1,
                               proj_scaling = 1, plot = TRUE
                             )
+      saveRDS(bspde.70, file="data\\bspde70.rds")
       #CK
         mesh.df.water <- bspde.70$mesh_sf[bspde.70$normal_triangles, ]
         mesh.df.land <- bspde.70$mesh_sf[bspde.70$barrier_triangles, ]
