@@ -89,6 +89,7 @@
     seg.dat.in <- readRDS(file.path(proj.dir,"data","segdatin.rds"))
     dl2019.mrds.dat <- readRDS(file.path(proj.dir,"data","dl2019_mrds_dat_Nhat.rds"))
     load(file.path(out.dir, "sdmTMB", "tweedie_spde.bar_70_catsize.Rdata"))
+      Nhat2.vec.orig <- Nhat2.vec
     bspde.70 <- readRDS(file.path(proj.dir, "data", "bspde70.rds"))
     
   #Identify which observations in dl2019.mrds.dat belong to ddf1 vs. ddf2
@@ -600,16 +601,16 @@
         #       you can get a CV as: sqrt(exp(se^2) - 1). For small values, the SE of the 
         #       log variable and the CV will be very similar."   
           
-          tmb.cv <- sqrt(exp(Nhat2.vec$se^2) - 1)
-          tmb.se <- tmb.cv*Nhat2.vec$est
+          tmb.cv <- sqrt(exp(Nhat2.vec.orig$se^2) - 1)
+          tmb.se <- tmb.cv*Nhat2.vec.orig$est
           #CK
-            Nhat2.vec$se
+            Nhat2.vec.orig$se
             tmb.cv
             tmb.se
       
           tot.var.good <- tmb.se^2 + var(M.df.good$Nhat.bc)
           tot.se.good <- sqrt(tot.var.good)
-          tot.cv.good <- sqrt(tot.var.good)/Nhat2.vec$est
+          tot.cv.good <- sqrt(tot.var.good)/Nhat2.vec.orig$est
           #CK
             tot.var.good
 
