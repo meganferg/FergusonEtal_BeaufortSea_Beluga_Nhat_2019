@@ -368,7 +368,9 @@
                file=file.path(pth, paste0(title,".Rdata")))
           
         #Return the area-integrated predicted number of individuals
-          return(c("Nhat"=Nhat,"Nhat.bc"=Nhat2))
+          return(c("Nhat"=Nhat,"Nhat.bc"=Nhat2, 
+                   "Nhat.bc.lo5"=as.numeric(Nhat2.vec[3]),
+                   "Nhat.bc.hi95"=as.numeric(Nhat2.vec[4])))
       
       }
       
@@ -649,7 +651,9 @@
                                  n.ind = integer(),
                                  p.avail = double(),
                                  Nhat.plugin = double(),
+                                 Nhat.bc.lo5 = double(),
                                  Nhat.bc = double(),
+                                 Nhat.bc.hi95 = double(),
                                stringsAsFactors=FALSE)
         
     #Initialize with fake values
@@ -665,7 +669,9 @@
                                            n.ind=0,
                                            p.avail,
                                            Nhat.plugin=-99.9,
-                                           Nhat.bc=-99.9)
+                                           Nhat.bc.lo5=-99.9,
+                                           Nhat.bc=-99.9,
+                                           Nhat.bc.hi95=-99.9)
 
   #Build dsms
     
@@ -791,7 +797,9 @@ Max.Edg <- max.edg70
                                                n.ind=sum(seg.dat.in$seg.ind),
                                                p.avail,
                                                Nhat.plugin=as.numeric(Nhat[1]),
-                                               Nhat.bc=as.numeric(Nhat[2]))
+                                               Nhat.bc.lo5=as.numeric(Nhat[3]),
+                                               Nhat.bc=as.numeric(Nhat[2]),
+                                               Nhat.bc.hi95=as.numeric(Nhat[4]))
   
         #Evaluate other observation likelihoods
           
@@ -876,7 +884,9 @@ Max.Edg <- max.edg70
                                                      n.ind=sum(seg.dat.in$seg.ind),
                                                      p.avail,
                                                      Nhat.plugin=as.numeric(Nhat[1]),
-                                                     Nhat.bc=as.numeric(Nhat[2]))
+                                                     Nhat.bc.lo5=as.numeric(Nhat[3]),
+                                                     Nhat.bc=as.numeric(Nhat[2]),
+                                                     Nhat.bc.hi95=as.numeric(Nhat[4]))
                 
                 M.idx <- M.idx.i
             }    
